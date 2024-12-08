@@ -147,12 +147,21 @@ async def upload_evidence(payment_id: str, file: UploadFile = File(...)):
   file_url = upload_to_s3(file, payment_id)
 
   collection = get_collection("payment_records")
+  payment = collection.find_one({"_id":ObjectId(payment_id)})
+
+  if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+  if payment["payee_payment_status"] == "completed" and "evidence_file_url" in payment:
+        raise HTTPException(status_code=400, detail="Evidence file already uploaded and payment status is completed.")
+  
   updated = collection.update_one(
         {"_id": ObjectId(payment_id)},
-        {"$set": {"payee_payment_status": "completed"}}
+        {"$set": {"payee_payment_status": "completed","evidence_file_url": file_url}}
     )
 
   if updated.modified_count == 0:
         raise HTTPException(status_code=404, detail="Payment not found or status already updated.")
+  
   return {"message": "File uploaded successfully", "file_url": file_url}
 
