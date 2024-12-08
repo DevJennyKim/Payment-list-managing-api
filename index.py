@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException
 from datetime import datetime
 from db import get_collection
+from bson import ObjectId
 
 app = FastAPI()
 
@@ -63,10 +64,16 @@ def create_payment(payment: dict):
 
 @app.delete("/payments/{payment_id}")
 def delete_payment(payment_id: str):
-    collection = get_collection("payment_records")
-    result = collection.delete_one({"_id": payment_id})
+  collection = get_collection("payment_records")
+  try:
+    payment_object_id = ObjectId(payment_id)
+  except Exception as e:
+    raise HTTPException(status_code=400, detail="Invalid ID format")
 
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Payment not found")
 
-    return {"message": "Payment deleted successfully"}
+  result = collection.delete_one({"_id": payment_object_id})
+
+  if result.deleted_count == 0:
+    raise HTTPException(status_code=404, detail="Payment not found")
+
+  return {"message": "Payment deleted successfully"}
