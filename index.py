@@ -145,5 +145,14 @@ def upload_to_s3(file: UploadFile, payment_id: str):
 @app.post("/upload_evidence/{payment_id}")
 async def upload_evidence(payment_id: str, file: UploadFile = File(...)):
   file_url = upload_to_s3(file, payment_id)
+
+  collection = get_collection("payment_records")
+  updated = collection.update_one(
+        {"_id": ObjectId(payment_id)},
+        {"$set": {"payee_payment_status": "completed"}}
+    )
+
+  if updated.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Payment not found or status already updated.")
   return {"message": "File uploaded successfully", "file_url": file_url}
 
