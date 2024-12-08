@@ -4,12 +4,9 @@ import os
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-from pymongo import MongoClient
 
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")
-
-
 
 def get_valid_iso_codes_and_currencies():
     url = "https://restcountries.com/v3.1/all"
@@ -24,18 +21,15 @@ def get_valid_iso_codes_and_currencies():
 
     return iso_codes, iso_currencies
 
-
 valid_iso_codes, valid_iso_currencies = get_valid_iso_codes_and_currencies()
 
 
 def validate_iso_code(value, iso_set):
-    # print(f"Validating ISO code: {value}")
     if value not in iso_set:
         print(f"Invalid ISO code: {value}")
     return value in iso_set
 
 def validate_date(value, format="%Y-%m-%d"):
-    # print(f"Validating date: {value}")
     try:
         datetime.strptime(value, format)
         return True
@@ -43,13 +37,11 @@ def validate_date(value, format="%Y-%m-%d"):
         return False
 
 def validate_phone_number(value):
-    # print(f"Validating phone number: {value}")
     value = str(value)
     pattern = r'^\+?[1-9]\d{1,14}$'
     return bool(re.match(pattern, str(value)))
 
 def validate_currency_code(value):
-    # print(f"Validating currency code: {value}")
     return value in valid_iso_currencies
 
 def normalize_and_validate_csv(file_path):
