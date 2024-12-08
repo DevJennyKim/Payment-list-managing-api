@@ -124,8 +124,16 @@ s3_client = boto3.client(
 
 BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+
+def allowed_file(filename:str) -> bool:
+  return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+#upload evidence to S3
 def upload_to_s3(file: UploadFile, payment_id: str):
   try:
+    if not allowed_file(file.filename):
+      raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, PNG, JPG are allowed.")
     file_name = f"{payment_id}_{uuid4().hex}_{file.filename}"
     s3_client.upload_fileobj(file.file, BUCKET_NAME, file_name)
     return f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
@@ -138,3 +146,4 @@ def upload_to_s3(file: UploadFile, payment_id: str):
 async def upload_evidence(payment_id: str, file: UploadFile = File(...)):
   file_url = upload_to_s3(file, payment_id)
   return {"message": "File uploaded successfully", "file_url": file_url}
+
