@@ -1,8 +1,12 @@
 import pandas as pd
 import re
+import os
 from datetime import datetime
 from dotenv import load_dotenv
 from pymongo import MongoClient
+
+load_dotenv()
+mongo_uri = os.getenv("MONGO_URI")
 
 def validate_iso_code(value, iso_set):
     return value in iso_set
@@ -58,7 +62,7 @@ print(valid_records)
 
 
 def save_to_mongo(data):
-    client = MongoClient("mongodb+srv://admin:admin1234@pay-managing.0r9o4.mongodb.net/?retryWrites=true&w=majority&appName=pay-managing")
+    client = MongoClient(mongo_uri)
     db = client['pay-managing']
     collection = db['payment_records']
     result = collection.insert_many(data)
