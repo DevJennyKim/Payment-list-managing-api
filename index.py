@@ -13,7 +13,10 @@ def calculate_total_due(payment):
 
 def update_payment_status(payment):
   today = datetime.utcnow().date()
-  payee_due_date = datetime.utcfromtimestamp(payment['payee_due_date']).date()
+  if isinstance(payment['payee_due_date'], str):
+    payee_due_date = datetime.strptime(payment['payee_due_date'], "%Y-%m-%d").date() 
+  else:
+    payee_due_date = datetime.utcfromtimestamp(payment['payee_due_date']).date()
 
   if payee_due_date == today:
     payment['payee_payment_status'] = "due_now"
@@ -23,10 +26,28 @@ def update_payment_status(payment):
   return payment
 
 @app.get("/payments")
-def get_payments():
+def get_payments(
+  search: str = Query(None),
+  filter_status: str = Query(None),
+  skip: int = Query(0, ge=0),
+  limit:int = Query(10,le=100)
+):
   collection = get_collection("payment_records")
-  payments = list(collection.find())
+
+  #search and filtering query
+  query = {}
+  if search:
+    query["$text"] = {"$search":search}
+  if filter_status:
+    query["payee_payment_status"] = filter_status
+
+  #paging
+  payments_cursor = collection.find(query).skip(skip).limit(limit)
+  payments = list(payments_cursor)
+  
   for payment in payments:
+    payment = update_payment_status(payment)
+    payment['total_due'] = calculate_total_due(payment)
     payment['_id'] = str(payment['_id'])
   
   return {"payments": payments}
