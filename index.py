@@ -1,5 +1,5 @@
 import boto3
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, UploadFile,Query, File, HTTPException
 from datetime import datetime
 from db import get_collection
 from bson import ObjectId
@@ -123,3 +123,18 @@ s3_client = boto3.client(
 )
 
 BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+
+def upload_to_s3(file: UploadFile, payment_id: str):
+  try:
+    file_name = f"{payment_id}_{uuid4().hex}_{file.filename}"
+    s3_client.upload_fileobj(file.file, BUCKET_NAME, file_name)
+    return f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+  except NoCredentialsError:
+    raise HTTPException(status_code=403, detail="AWS credentials not available.")
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
+  
+@app.post("/upload_evidence/{payment_id}")
+async def upload_evidence(payment_id: str, file: UploadFile = File(...)):
+  file_url = upload_to_s3(file, payment_id)
+  return {"message": "File uploaded successfully", "file_url": file_url}
