@@ -19,6 +19,7 @@ def validate_date(value, format="%Y-%m-%d"):
         return False
 
 def validate_phone_number(value):
+    value = str(value)
     pattern = r'^\+?[1-9]\d{1,14}$'
     return bool(re.match(pattern, value))
 
@@ -55,10 +56,10 @@ def normalize_and_validate_csv(file_path):
 
     return df[df['valid']].drop(columns=['valid']).to_dict('records')
 
-file_path = "/upload/payment_information.csv"
+file_path = "upload/payment_information.csv"
 valid_records = normalize_and_validate_csv(file_path)
-print("Validated Records:")
-print(valid_records)
+# print("Validated Records:")
+# print(valid_records)
 
 
 def save_to_mongo(data):
