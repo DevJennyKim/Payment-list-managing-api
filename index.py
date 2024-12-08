@@ -1,7 +1,11 @@
+import boto3
 from fastapi import FastAPI, Query, HTTPException
 from datetime import datetime
 from db import get_collection
 from bson import ObjectId
+from botocore.exceptions import NoCredentialsError
+from uuid import uuid4
+import os
 
 app = FastAPI()
 
@@ -104,3 +108,18 @@ def update_payment(payment_id: str, payment:dict):
   updated_payment['_id'] = str(updated_payment['_id'])
   
   return {"message": "Payment updated successfully", "updated_payment": updated_payment}
+
+#AWS Setting
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION")
+
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.getenv("AWS_REGION")
+)
+
+BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
