@@ -101,4 +101,6 @@ def update_payment(payment_id: str, payment:dict):
   if result.matched_count == 0:
     raise HTTPException(status_code=404, detail="Payment not found")
   
+  updated_payment['_id'] = str(updated_payment['_id'])
+  
   return {"message": "Payment updated successfully", "updated_payment": updated_payment}
