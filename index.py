@@ -165,3 +165,16 @@ async def upload_evidence(payment_id: str, file: UploadFile = File(...)):
   
   return {"message": "File uploaded successfully", "file_url": file_url}
 
+@app.get("/download_evidence/{payment_id}")
+async def download_evidence(payment_id: str):
+  collection = get_collection("payment_records")
+  payment = collection.find_one({"_id": ObjectId(payment_id)})
+
+  if not payment:
+    raise HTTPException(status_code = 404, detail="Payment not found")
+  
+  if "evidence_file_url" not in payment:
+    raise HTTPException(status_code=404, detail="Evidence file not found")
+  return{"file_url": payment["evidence_file_url"]}
+
+
