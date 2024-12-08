@@ -31,7 +31,7 @@ def get_payments(
   search: str = Query(None),
   filter_status: str = Query(None),
   page: int = Query(1, ge=1),
-  limit:int = Query(20,le=100)
+  limit:int = Query(20, le=100)
 ):
   collection = get_collection("payment_records")
 
@@ -77,3 +77,30 @@ def delete_payment(payment_id: str):
     raise HTTPException(status_code=404, detail="Payment not found")
 
   return {"message": "Payment deleted successfully"}
+
+@app.put("/payments/{payment_id}")
+def update_payment(payment_id: str, payment:dict):
+  collection  = get_collection("payment_records")
+
+  try:
+    payment_object_id = ObjectId(payment_id)
+  except Exception as e:
+    raise HTTPException(status_code=400, detail="Invalid ID format")
+  
+  existing_payment = collection.find_one({"_id": payment_object_id})
+  if not existing_payment:
+    raise HTTPException(status_code = 404, detail = "Payment not found")
+  
+  updated_payment = {**existing_payment, **payment}
+
+  updated_payment = update_payment_status(updated_payment)
+  updated_payment['total_due'] = calculate_total_due(updated_payment)
+
+  result = collection.replace_one({"_id": payment_object_id}, updated_payment)
+
+  if result.matched_count == 0:
+    raise HTTPException(status_code=404, detail="Payment not found")
+  
+  updated_payment['_id'] = str(updated_payment['_id'])
+  
+  return {"message": "Payment updated successfully", "updated_payment": updated_payment}
