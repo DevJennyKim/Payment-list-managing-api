@@ -29,8 +29,8 @@ def update_payment_status(payment):
 def get_payments(
   search: str = Query(None),
   filter_status: str = Query(None),
-  skip: int = Query(0, ge=0),
-  limit:int = Query(10,le=100)
+  page: int = Query(1, ge=1),
+  limit:int = Query(20,le=100)
 ):
   collection = get_collection("payment_records")
 
@@ -42,6 +42,8 @@ def get_payments(
     query["payee_payment_status"] = filter_status
 
   #paging
+  skip = (page-1)*limit
+
   payments_cursor = collection.find(query).skip(skip).limit(limit)
   payments = list(payments_cursor)
   
