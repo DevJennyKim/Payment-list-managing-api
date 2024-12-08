@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from datetime import datetime
 from db import get_collection
 
@@ -61,3 +61,12 @@ def create_payment(payment: dict):
   
   return {"inserted_id": str(result.inserted_id)}
 
+@app.delete("/payments/{payment_id}")
+def delete_payment(payment_id: str):
+    collection = get_collection("payment_records")
+    result = collection.delete_one({"_id": payment_id})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    return {"message": "Payment deleted successfully"}
