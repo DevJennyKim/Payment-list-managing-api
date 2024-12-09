@@ -1,11 +1,15 @@
 import boto3
+import requests
+import os
 from fastapi import FastAPI, UploadFile,Query, File, HTTPException
+from fastapi.responses import StreamingResponse
 from datetime import datetime
 from db import get_collection
 from bson import ObjectId
 from botocore.exceptions import NoCredentialsError
 from uuid import uuid4
-import os
+from io import BytesIO
+
 
 app = FastAPI()
 
@@ -175,6 +179,19 @@ async def download_evidence(payment_id: str):
   
   if "evidence_file_url" not in payment:
     raise HTTPException(status_code=404, detail="Evidence file not found")
-  return{"file_url": payment["evidence_file_url"]}
+  
+  file_url = payment["evidence_file_url"]
+
+  try: 
+    response = requests.get(file_url)
+    if response.status_code == 200:
+      file_content = BytesIO(response.content)
+      file_name = file_url.split('/')[-1]
+      return StreamingResponse(file_content, media_type="application/octet-stream", headers={"Content-Disposition": f"attachment; filename={file_name}"})
+    else:
+      raise HTTPException(status_code=500, detail="Failed to download file from S3")
+
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
 
 
