@@ -3,6 +3,7 @@ import requests
 import os
 from fastapi import FastAPI, UploadFile,Query, File, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from db import get_collection
 from bson import ObjectId
@@ -12,6 +13,14 @@ from io import BytesIO
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def calculate_total_due(payment):
@@ -55,13 +64,15 @@ def get_payments(
 
   payments_cursor = collection.find(query).skip(skip).limit(limit)
   payments = list(payments_cursor)
+
+  total_items = collection.count_documents(query)
   
   for payment in payments:
     payment = update_payment_status(payment)
     payment['total_due'] = calculate_total_due(payment)
     payment['_id'] = str(payment['_id'])
   
-  return {"payments": payments}
+  return {"payments": payments, "totalItems": total_items}
 
 @app.post("/payments")
 def create_payment(payment: dict):
