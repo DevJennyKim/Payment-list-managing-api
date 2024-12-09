@@ -6,3 +6,4 @@ uvicorn==0.32.1
 pandas==2.2.3
 requests==2.32.3
 motor==3.6.0
+
