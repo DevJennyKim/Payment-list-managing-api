@@ -1,8 +1,10 @@
 import boto3
+import httpx
 import requests
 import os
 from fastapi import FastAPI, UploadFile,Query, File, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from db import get_collection
 from bson import ObjectId
@@ -10,9 +12,15 @@ from botocore.exceptions import NoCredentialsError
 from uuid import uuid4
 from io import BytesIO
 
-
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def calculate_total_due(payment):
   discount_amount=(payment['due_amount']*payment['discount_percent'])/100
@@ -43,25 +51,25 @@ def get_payments(
 ):
   collection = get_collection("payment_records")
 
-  #search and filtering query
   query = {}
   if search:
     query["$text"] = {"$search":search}
   if filter_status:
     query["payee_payment_status"] = filter_status
 
-  #paging
   skip = (page-1)*limit
 
-  payments_cursor = collection.find(query).skip(skip).limit(limit)
+  payments_cursor = collection.find(query).skip(skip).limit(limit).sort("payee_added_date_utc", -1)
   payments = list(payments_cursor)
+
+  total_items = collection.count_documents(query)
   
   for payment in payments:
     payment = update_payment_status(payment)
     payment['total_due'] = calculate_total_due(payment)
     payment['_id'] = str(payment['_id'])
   
-  return {"payments": payments}
+  return {"payments": payments, "totalItems": total_items}
 
 @app.post("/payments")
 def create_payment(payment: dict):
@@ -113,7 +121,6 @@ def update_payment(payment_id: str, payment:dict):
   
   return {"message": "Payment updated successfully", "updated_payment": updated_payment}
 
-#AWS Setting
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
@@ -133,7 +140,6 @@ ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 def allowed_file(filename:str) -> bool:
   return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-#upload evidence to S3
 def upload_to_s3(file: UploadFile, payment_id: str):
   try:
     if not allowed_file(file.filename):
@@ -183,7 +189,8 @@ async def download_evidence(payment_id: str):
   file_url = payment["evidence_file_url"]
 
   try: 
-    response = requests.get(file_url)
+    async with httpx.AsyncClient() as client:
+      response = await client.get(file_url)
     if response.status_code == 200:
       file_content = BytesIO(response.content)
       file_name = file_url.split('/')[-1]
