@@ -52,24 +52,50 @@ def get_payments(
   collection = get_collection("payment_records")
 
   query = {}
-  if search:
-    query["$text"] = {"$search":search}
-  if filter_status:
-    query["payee_payment_status"] = filter_status
 
   skip = (page-1)*limit
 
-  payments_cursor = collection.find(query).skip(skip).limit(limit).sort("payee_added_date_utc", -1)
+  payments_cursor = collection.find(query).sort("payee_added_date_utc", -1)
   payments = list(payments_cursor)
 
-  total_items = collection.count_documents(query)
   
   for payment in payments:
     payment = update_payment_status(payment)
     payment['total_due'] = calculate_total_due(payment)
     payment['_id'] = str(payment['_id'])
+    
+  if filter_status:
+    payments = [payment for payment in payments if payment['payee_payment_status'] == filter_status]
+
+  if search:
+    payments = [payment for payment in payments if (
+      search.lower() in payment.get('payee_first_name', '').lower() or 
+      search.lower() in payment.get('payee_last_name', '').lower()or
+      search.lower() in payment.get('payee_email', '').lower())]
+
+  start_index = skip
+  end_index = start_index + limit
+  paginated_payments = payments[start_index:end_index]
   
-  return {"payments": payments, "totalItems": total_items}
+
+  return {"payments": paginated_payments, "totalItems": len(payments)}
+
+
+@app.get("/payments/{payment_id}")
+def get_payment_by_id(payment_id:str):
+  collection = get_collection("payment_records")
+
+  payment = collection.find_one({"_id": ObjectId(payment_id)})
+
+  if not payment:
+    raise HTTPException(status_code=404, detail = "Payment record not found")
+  
+  payment = update_payment_status(payment)
+  payment['total_due'] = calculate_total_due(payment)
+  payment['_id'] = str(payment['_id'])
+
+  return {"payment": payment}
+
 
 @app.post("/payments")
 def create_payment(payment: dict):
