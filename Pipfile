@@ -25,4 +25,4 @@ httpx==0.28.1
 start = "uvicorn index:app --host 0.0.0.0 --port 8000"
 
 [requires]
-python_version = "3.12"
+python_version = "3.10"
