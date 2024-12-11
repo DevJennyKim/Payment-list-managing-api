@@ -17,7 +17,7 @@ numpy = "==2.1.3"
 python-multipart = "==0.0.19"
 python-dateutil = "==2.9.0.post0"
 dnspython = "==2.7.0"
-httpx==0.28.1
+httpx = "==0.28.1"
 
 [dev-packages]
 
@@ -25,4 +25,4 @@ httpx==0.28.1
 start = "uvicorn index:app --host 0.0.0.0 --port 8000"
 
 [requires]
-python_version = "3.10"
+python_version = "3.12"
