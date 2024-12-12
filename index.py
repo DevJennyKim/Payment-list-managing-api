@@ -39,6 +39,8 @@ def update_payment_status(payment):
     payment['payee_payment_status'] = "due_now"
   elif payee_due_date< today:
     payment['payee_payment_status'] = "overdue"
+  elif payee_due_date> today:
+    payment['payee_payment_status'] = "pending"
 
   return payment
 
